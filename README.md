@@ -53,6 +53,9 @@ Cadastro de galpões com área e vínculo direto aos lotes alocados.
 
 ---
 
+![Dashboard do sistema](assets/dashboard.png)
+---
+
 ## Estrutura do banco de dados
 
 ```
