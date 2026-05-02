@@ -55,7 +55,7 @@ def dash():
     print(f'|{'Balanço Financeiro (30 dias)'.center(98)}|')
     print('=' * 100)
 
-    rdl = func.receits_despesas_lucro()
+    rdl = func.receitas_despesas_lucro()
     print(f'| Receitas           : {str(rdl['Receitas']).ljust(26,' ')} | Despesas           : {str(rdl['Despesas']).ljust(25,' ')} |')
     print(f'| Lucro              : {str(rdl['Lucro']).ljust(26,' ')} | Preço médio do ovo : {str(rdl['Preço médio do Ovo']).ljust(25,' ')} |')
 
@@ -88,10 +88,23 @@ def dash():
 
     estoq = func.estoque()
     print(f'| Ração Pré-Inicial : {str(estoq['R.Pre-Ini']).ljust(27, ' ')} | Ovos              : {str(estoq['Ovos']).ljust(26, ' ')} |')
-    print(f'| Ração Inicial     : {str(estoq['R.Inicial']).ljust(27, ' ')} || Ração Crescimento: {str(estoq['R.Crescim']).ljust(26, ' ')} |')
+    print(f'| Ração Inicial     : {str(estoq['R.Inicial']).ljust(27, ' ')} | Ração Crescimento: {str(estoq['R.Crescim']).ljust(26, ' ')} |')
     print(f'| Ração Postura     : {str(estoq['R.Postura']).ljust(76, ' ')} |')
 
     print('=' * 100)
+
+
+def mostrar_linhas(linhas, headers, tamanhos):
+    print('=' * 120)
+    for header, tam_col in zip(headers, tamanhos):
+        print(f'| {header.ljust(tam_col, ' ')} ', end='')
+    print('|')
+
+    for linha in linhas:
+        for dado, tam_col in zip(linha, tamanhos):
+            print(f'| {str(dado).ljust(tam_col,' ')} ', end='')
+        print('|')
+    print('='*120)
 
 
 def menu(titulo, opcoes, mensagem):
@@ -176,9 +189,11 @@ def main():
                 match escolha_prod:
                     case 1:
                         try:
-                            func.mostrar_linhas('producao', ('ID', 'Lote', 'Data', 'Ovos.Int', 'Ovos.Def',
+                            linhas = func.obter_linhas('producao')
+                            mostrar_linhas(linhas, ('ID', 'Lote', 'Data', 'Ovos.Int', 'Ovos.Def',
                                                              'Mortes', 'Ração', 'Água', 'Obs', 'Postura(%)'),
                                                 (5,4,10,8,8,6,5,5,28,10))
+
                         except Exception as e:
                             print(f'  Erro: {e}')
                     case 2:
@@ -236,7 +251,8 @@ def main():
                 match escolha_pre:
                     case 1:
                         try:
-                            func.mostrar_linhas('preproducao', ('ID', 'Lote', 'Data', 'Mortes'
+                            linhas = func.obter_linhas('preproducao')
+                            mostrar_linhas(linhas , ('ID', 'Lote', 'Data', 'Mortes'
                                                                     , 'Ração', 'Água', 'Peso', 'Categoria', 'Observação'),
                                                 (5, 4, 10, 6, 6, 6, 5, 9, 41))
                         except Exception as e:
@@ -289,7 +305,8 @@ def main():
                 match escolha_mov:
                     case 1:
                         try:
-                            func.mostrar_linhas('financeiro', ('ID', 'Data', 'Categoria', 'Quantidade',
+                            linhas = func.obter_linhas('financeiro')
+                            mostrar_linhas(linhas, ('ID', 'Data', 'Categoria', 'Quantidade',
                                                                'Valor', 'Fornecedor/Comprador', 'Obs'),
                                                 (5, 10, 9, 10, 8, 27, 29))
                         except Exception as e:
@@ -341,7 +358,8 @@ def main():
                 match escolha_galp:
                     case 1:
                         try:
-                            func.mostrar_linhas('galpoes', ('ID', 'Área do galpão'), (2,111))
+                            linhas = func.obter_linhas('galpoes')
+                            mostrar_linhas(linhas, ('ID', 'Área do galpão'), (2,111))
                         except Exception as e:
                             print(f'  Erro: {e}')
                     case 2:
@@ -384,7 +402,8 @@ def main():
                 match escolha_lote:
                     case 1:
                         try:
-                            func.mostrar_linhas('lotes', ('ID','Galpão','Nascimento','Início Prod.',
+                            linhas = func.obter_linhas('lotes')
+                            mostrar_linhas(linhas, ('ID','Galpão','Nascimento','Início Prod.',
                                                           'Descarte', 'Q.Inicial','Q.Atual','Fornecedor','Ração'),
                                                 (2,6,10,12,10,9,9,25,9))
                         except Exception as e:
