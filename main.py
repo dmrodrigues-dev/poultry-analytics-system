@@ -135,8 +135,10 @@ def atom_prod(linha):
     Atualiza o plantel do lote com base na mortalidade inserida na tabela producao
     :param linha: Lista que será adicionada na tabela producao
     '''
-    func.add_linha('producao', tuple(linha))
+    if func.retornar_dado('lotes', 'racao', linha[1]) != 'R.Postura':
+        func.updt_linha('lotes', 'racao', 'R.Postura', linha[1])
 
+    func.add_linha('producao', tuple(linha))
     if int(linha[5]) > 0:
         atual = int(func.retornar_dado('lotes', 'qtd_atual', linha[1])) - int(linha[5])
         func.updt_linha('lotes', 'qtd_atual', atual, linha[1])
@@ -152,6 +154,10 @@ def atom_pre(linha):
     if int(linha[3]) > 0:
         atual = int(func.retornar_dado('lotes', 'qtd_atual', linha[1])) - int(linha[3])
         func.updt_linha('lotes', 'qtd_atual', atual, linha[1])
+
+    # Nova funcionalidade para atualizar categoria do lote de acordo com a ração informada no preproducao
+    if linha[7] != func.retornar_dado('lotes', 'racao', linha[1]):
+        func.updt_linha('lotes', 'racao', linha[7], linha[1])
 
 def taxa_diaria(prod, id_lote):
     '''
@@ -216,24 +222,24 @@ def main():
                             func.bank.rollback()
                             print(f'  Erro: {e}')
                     case 3:
-                        id = input_int('  ID do registro a editar: ')
+                        ident = input_int('  ID do registro a editar: ')
                         coluna = input('  Coluna do dado a editar: ')
                         dado = input('  Novo dado: ')
                         try:
 
                             if coluna == 'mortalidade':
-                                lote = func.retornar_dado('producao', 'id_lote',id)
+                                lote = func.retornar_dado('producao', 'id_lote',ident)
                                 antigo = int(func.retornar_dado('lotes', 'qtd_atual',lote))
-                                original = antigo + int(func.retornar_dado('producao', 'mortalidade',id))
+                                original = antigo + int(func.retornar_dado('producao', 'mortalidade',ident))
                                 novo = original - int(dado)
                                 func.updt_linha('lotes', 'qtd_atual', novo, lote)
                             elif coluna == 'ovos_inteiros':
-                                qtd_original = (int(func.retornar_dado('producao','ovos_inteiros',id))/
-                                                (float(func.retornar_dado('producao','taxa',id))/100))
+                                qtd_original = (int(func.retornar_dado('producao','ovos_inteiros',ident))/
+                                                (float(func.retornar_dado('producao','taxa',ident))/100))
                                 taxa = (int(dado) * 100) / qtd_original
-                                func.updt_linha('producao', 'taxa', taxa, id)
+                                func.updt_linha('producao', 'taxa', taxa, ident)
 
-                            func.updt_linha('producao', coluna, dado, id)
+                            func.updt_linha('producao', coluna, dado, ident)
                             func.bank.commit()
                             print('  Registro Atualizado!')
                         except Exception as e:
@@ -275,19 +281,19 @@ def main():
                             func.bank.rollback()
                             print(f'  Erro: {e}')
                     case 3:
-                        id = input_int('  ID do registro a editar: ')
+                        ident = input_int('  ID do registro a editar: ')
                         coluna = input('  Coluna do dado a editar: ')
                         dado = input('  Novo dado: ')
                         try:
 
                             if coluna == 'mortalidade':
-                                lote = func.retornar_dado('preproducao', 'id_lote', id)
+                                lote = func.retornar_dado('preproducao', 'id_lote', ident)
                                 antigo = int(func.retornar_dado('lotes', 'qtd_atual', lote))
-                                original = antigo + int(func.retornar_dado('preproducao', 'mortalidade', id))
+                                original = antigo + int(func.retornar_dado('preproducao', 'mortalidade', ident))
                                 novo = original - int(dado)
                                 func.updt_linha('lotes', 'qtd_atual', novo, lote)
 
-                            func.updt_linha('preproducao', coluna, dado, id)
+                            func.updt_linha('preproducao', coluna, dado, ident)
                             func.bank.commit()
                             print('  Registro Atualizado!')
                         except Exception as e:
@@ -327,20 +333,20 @@ def main():
                             func.bank.rollback()
                             print(f'  Erro: {e}')
                     case 3:
-                        id = input_int('  ID da movimentação a Editar: ')
+                        ident = input_int('  ID da movimentação a Editar: ')
                         coluna = input('  Coluna do dado a editar: ')
                         dado = input('  Novo Dado: ')
                         try:
-                            func.updt_linha('financeiro', coluna, dado, id)
+                            func.updt_linha('financeiro', coluna, dado, ident)
                             func.bank.commit()
                             print('  Registro atualizado!')
                         except Exception as e:
                             func.bank.rollback()
                             print(f'  Erro: {e}')
                     case 4:
-                        id = input_int(f'  ID do Registro a deletar: ')
+                        ident = input_int(f'  ID do Registro a deletar: ')
                         try:
-                            func.del_linha('financeiro', id)
+                            func.del_linha('financeiro', ident)
                             func.bank.commit()
                             print('  Registro deletado!')
                         except Exception as e:
@@ -372,19 +378,19 @@ def main():
                             func.bank.rollback()
                             print(f'  Erro: {e}')
                     case 3:
-                        id = input_int('  ID do galpão a editar: ')
+                        ident = input_int('  ID do galpão a editar: ')
                         area = input_float('  Nova área do galpão: ')
                         try:
-                            func.updt_linha('galpoes', 'area', area, id)
+                            func.updt_linha('galpoes', 'area', area, ident)
                             func.bank.commit()
                             print('  Área do Galpão atualizada!')
                         except Exception as e:
                             func.bank.rollback()
                             print(f'  Erro: {e}')
                     case 4:
-                        id = input_int('  ID do galpão a deletar: ')
+                        ident = input_int('  ID do galpão a deletar: ')
                         try:
-                            func.del_linha('galpoes', id)
+                            func.del_linha('galpoes', ident)
                             func.bank.commit()
                             print('  Galpão deletado!')
                         except Exception as e:
@@ -426,20 +432,20 @@ def main():
                             func.bank.rollback()
                             print(f'  Erro: {e}')
                     case 3:
-                        id = input_int('  ID do lote a Editar: ')
+                        ident = input_int('  ID do lote a Editar: ')
                         coluna = input('  Coluna do dado a editar: ')
                         dado = input('  Novo Dado: ')
                         try:
-                            func.updt_linha('lotes', coluna, dado, id)
+                            func.updt_linha('lotes', coluna, dado, ident)
                             func.bank.commit()
                             print('  Lote atualizado!')
                         except Exception as e:
                             func.bank.rollback()
                             print(f'  Erro: {e}')
                     case 4:
-                        id = input_int(f'  ID do Lote a deletar: ')
+                        ident = input_int(f'  ID do Lote a deletar: ')
                         try:
-                            func.del_linha('lotes', id)
+                            func.del_linha('lotes', ident)
                             func.bank.commit()
                             print('  Lote deletado!')
                         except Exception as e:

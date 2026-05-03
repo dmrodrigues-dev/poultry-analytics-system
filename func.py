@@ -25,6 +25,7 @@ def obter_linhas(tabela, order='asc'):
         return
 
     cursor.execute(f'select * from {tabela} order by id {order}')
+
     return cursor.fetchall()
 
 
