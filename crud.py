@@ -19,7 +19,7 @@ def obter_linhas(tabela, order='asc'):
     '''
     :param tabela: nome da tabela
     :param order: 'asc' or 'desc' para ascendente ou descendente
-    EXEMPLO: mostrar_linhas('lotes', ('Q.Inicial','Q.Atual'), (9,9))
+    :return lista de linhas
     '''
     if not verificar_tab(tabela):
         return
@@ -32,7 +32,7 @@ def obter_linhas(tabela, order='asc'):
 def verificar_tab(tabela):
     '''
     :param tabela: Tabela que será analisada se está na lista de permitidas
-    :return:
+    :return: True para tabelas na lista e False para tabelas fora da lista
     '''
     if tabela not in TABELAS_PERMITIDAS: # verifica se a tabela está na lista de tabelas
         print(f'  {tabela} não encontrada')
@@ -100,6 +100,9 @@ def retornar_dado(tabela, coluna, linha_id):
 
 
 def obter_rdl():
+    '''
+    :return: lista com receitas, despesas e preço médio do ovo
+    '''
     cursor.execute("select coalesce(sum(valor), 0) as receitas, "
                    "coalesce((select sum(valor) from financeiro where categoria != 'Ovos' and dia >= curdate() - interval 30 day), 0) as despesas, "
                    "(coalesce(sum(valor), 0) / nullif(sum(qtd), 0)) as preco_ovo "
@@ -107,32 +110,15 @@ def obter_rdl():
     return cursor.fetchall()[0]
 
 
-def receitas_despesas_lucro():
+def obter_estoque():
     '''
-    :return: Dicionário com receitas, despesas, lucro líquido e preço médio do ovo, nos últimos 30 dias
+    :return: Lista com 2 listas, uma para ovos vendidos e rações compradas
+    e outra para ovos produzidos e rações consumidas
     '''
-
-    receitas,despesas,ticket = obter_rdl()
-    res = {'Receitas': receitas,
-           'Despesas': despesas,
-           'Lucro': receitas - despesas,
-           'Preço médio do Ovo': round(ticket, 2) if ticket is not None else 0}
-    return res
-
-
-def estoque():
-    '''
-    :return: Dicionário com estoque de ovos e rações
-    '''
-    est = {'Ovos': 0,
-           'R.Pre-Ini': 0,
-           'R.Inicial': 0,
-           'R.Crescim': 0,
-           'R.Postura': 0}
 
     cursor.execute("select categoria, coalesce(sum(qtd), 0) from financeiro group by categoria;")
     # lista com linhas, cada linha com uma categoria e uma quantidade comprada
-    fetch = cursor.fetchall()  # lista com linhas, cada linha com uma categoria e uma quantidade comprada
+    fetch = cursor.fetchall()
     financeiro = {i[0]: i[1] for i in fetch}
 
     cursor.execute("select coalesce(sum(ovos_inteiros), 0), coalesce(sum(consumo_racao), 0) from producao")
@@ -145,39 +131,29 @@ def estoque():
     fetch = cursor.fetchall()
     producao.update({i[0]: i[1] for i in fetch})
 
-    # prod - financ para ovos
-    # financ - prod para rações
-    for i in est:
-        if i == 'Ovos':
-            est[i] = producao.get('Ovos', 0) - financeiro.get('Ovos',0)
-        else:
-            est[i] = financeiro.get(i,0) - producao.get(i,0)
-    return est
+    return [financeiro, producao]
 
 
 def obter_lote_prod():
+    '''
+    :return: lista com informações de cada lote, como id, plantel, postura, mortalidade e consumo por ave/dia
+    '''
     cursor.execute(f"select lotes.id,"
                    f"lotes.qtd_atual as plantel,"
                    f"avg(p.taxa) as postura,"
                    f"(coalesce(sum(p.mortalidade), 0)*100 / max(lotes.qtd_inicial)) as mortalidade,"
-                   f"avg(p.consumo_racao / (p.ovos_inteiros / nullif(p.taxa / 100, 0))) as r_ave_dia  from producao as p "
+                   f"avg(p.consumo_racao / (p.ovos_inteiros / nullif(p.taxa / 100, 0))) as r_ave_dia "
+                   f"from producao as p "
                    f"join lotes on lotes.id = p.id_lote "
                    f"where dia >= curdate() - interval 30 day and lotes.racao = 'R.Postura' "
                    f"group by lotes.id; ")
     return cursor.fetchall()
 
 
-def montar_lote_prod(lote):
-    caracteristicas = {'ID': lote[0],
-                       'Plantel': lote[1],
-                       'Taxa de Postura': round(float(lote[2]), 2),
-                       'Taxa de Mortalidade': round(float(lote[3]), 2),
-                       'Consumo de Ração/Ave': round(float(lote[4]), 2),
-                       'Postura': True}
-    return caracteristicas
-
-
 def obter_lote_prep():
+    '''
+    :return: lista com informações de cada lote em preprodução, como id, categoria, plantel, peso atual e mortalidade
+    '''
     cursor.execute(f"select lotes.id,"
                    f"lotes.racao as categoria,"
                    f"lotes.qtd_atual as plantel,"
@@ -186,58 +162,30 @@ def obter_lote_prep():
                    f"	where id_lote = lotes.id "
                    f"    order by preproducao.dia desc "
                    f"    limit 1) as peso,"
-                   f"(coalesce(sum(prep.mortalidade), 0)*100 / max(lotes.qtd_inicial)) as mortalidade from preproducao as prep "
+                   f"(coalesce(sum(prep.mortalidade), 0)*100 / max(lotes.qtd_inicial)) as mortalidade"
+                   f"from preproducao as prep "
                    f"join lotes on lotes.id = prep.id_lote "
                    f"where dia >= curdate() - interval 30 day and lotes.racao != 'R.Postura' "
                    f"group by lotes.id; ")
     return cursor.fetchall()
 
 
-def montar_lote_prep(lote):
-    caracteristicas = {'ID': lote[0],
-                       'Categoria': lote[1],
-                       'Plantel': lote[2],
-                       'Peso': lote[3],
-                       'Taxa de Mortalidade': lote[4],
-                       'Postura': False}
-    return caracteristicas
-
-
-def dash_lotes():
+def obter_total():
     '''
-    :return: Lista com ID, plantelm taxas de postura e mortalidade, e consumo ave/dia de cada lote nos últimos 30 dias
+    :return: lista com plantel total, taxa de postura e mortalidade da granja
     '''
-    lotes = []
-
-    linhas_prod = obter_lote_prod()
-    for lote in linhas_prod:
-        lotes.append(montar_lote_prod(lote))
-
-    linhas_prep = obter_lote_prep()
-    for lote in linhas_prep:
-        lotes.append(montar_lote_prep(lote))
-
-    return lotes
-
-
-def total():
-    '''
-    :return: Dicionário com plantel total e taxas de postura e mortalidade da granja nos últimos 30 dias
-    '''
-    res = {'Plantel Total': '',
-           'Taxa de Postura Total': '',
-           'Taxa de Mortalidade Total': ''}
+    res = []
 
     cursor.execute("select coalesce(sum(qtd_atual),0) from lotes")
-    res['Plantel Total'] = cursor.fetchall()[0][0]
+    res.append(cursor.fetchall()[0][0])
 
     cursor.execute("select coalesce(avg(taxa), 0) from producao where dia >= curdate() - interval 30 day")
-    res['Taxa de Postura Total'] = round(cursor.fetchall()[0][0], 2)
+    res.append(round(cursor.fetchall()[0][0], 2))
 
     cursor.execute("select ("
                    "	coalesce((select sum(mortalidade) from producao where dia >= curdate() - interval 30 day), 0) +"
                    "	coalesce((select sum(mortalidade) from preproducao where dia >= curdate() - interval 30 day), 0)"
                    "	) * 100 / (select sum(qtd_inicial) from lotes)")
-    res['Taxa de Mortalidade Total'] = round(cursor.fetchall()[0][0], 2)
+    res.append(round(cursor.fetchall()[0][0], 2))
 
     return res

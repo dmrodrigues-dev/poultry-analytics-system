@@ -1,4 +1,5 @@
-import func
+import analytics
+import crud
 import os
 from datetime import datetime
 
@@ -55,7 +56,7 @@ def dash():
     print(f'|{'Balanço Financeiro (30 dias)'.center(98)}|')
     print('=' * 100)
 
-    rdl = func.receitas_despesas_lucro()
+    rdl = analytics.receitas_despesas_lucro()
     print(f'| Receitas           : {str(rdl['Receitas']).ljust(26,' ')} | Despesas           : {str(rdl['Despesas']).ljust(25,' ')} |')
     print(f'| Lucro              : {str(rdl['Lucro']).ljust(26,' ')} | Preço médio do ovo : {str(rdl['Preço médio do Ovo']).ljust(25,' ')} |')
 
@@ -63,7 +64,7 @@ def dash():
     print(f'|{'Estatísticas da Granja (30 dias)'.center(98)}|')
     print('=' * 100)
 
-    total = func.total()
+    total = analytics.montar_total()
     print(f'| Plantel Total             : {str(total['Plantel Total']).ljust(68, ' ')} |')
     print(f'| Taxa de Postura Total     : {str(total['Taxa de Postura Total']).ljust(19, ' ')} | Taxa de Mortalidade Total : {str(total['Taxa de Mortalidade Total']).ljust(18, ' ')} |')
 
@@ -71,7 +72,7 @@ def dash():
     print(f'|{'Estatísticas dos Lotes (30 dias)'.center(98)}|')
     print('=' * 100)
 
-    dados_lotes = func.dash_lotes()
+    dados_lotes = analytics.dash_lotes()
     for lote in dados_lotes:
         if lote['Postura']:
             print(f'| Lote                 : {str(lote['ID']).ljust(24, ' ')} | Plantel              : {str(lote['Plantel']).ljust(23, ' ')} |')
@@ -86,7 +87,7 @@ def dash():
     print(f'|{'Estoque'.center(98)}|')
     print('=' * 100)
 
-    estoq = func.estoque()
+    estoq = analytics.montar_estoque()
     print(f'| Ração Pré-Inicial : {str(estoq['R.Pre-Ini']).ljust(27, ' ')} | Ovos              : {str(estoq['Ovos']).ljust(26, ' ')} |')
     print(f'| Ração Inicial     : {str(estoq['R.Inicial']).ljust(27, ' ')} | Ração Crescimento: {str(estoq['R.Crescim']).ljust(26, ' ')} |')
     print(f'| Ração Postura     : {str(estoq['R.Postura']).ljust(76, ' ')} |')
@@ -135,29 +136,29 @@ def atom_prod(linha):
     Atualiza o plantel do lote com base na mortalidade inserida na tabela producao
     :param linha: Lista que será adicionada na tabela producao
     '''
-    if func.retornar_dado('lotes', 'racao', linha[1]) != 'R.Postura':
-        func.updt_linha('lotes', 'racao', 'R.Postura', linha[1])
+    if crud.retornar_dado('lotes', 'racao', linha[1]) != 'R.Postura':
+        crud.updt_linha('lotes', 'racao', 'R.Postura', linha[1])
 
-    func.add_linha('producao', tuple(linha))
+    crud.add_linha('producao', tuple(linha))
     if int(linha[5]) > 0:
-        atual = int(func.retornar_dado('lotes', 'qtd_atual', linha[1])) - int(linha[5])
-        func.updt_linha('lotes', 'qtd_atual', atual, linha[1])
+        atual = int(crud.retornar_dado('lotes', 'qtd_atual', linha[1])) - int(linha[5])
+        crud.updt_linha('lotes', 'qtd_atual', atual, linha[1])
 
 
 def atom_pre(linha):
     '''
     Atualiza o plantel do lote com base na mortalidade inserida na tabela preproducao
-    :param linha: linha: Lista que será adicionada na tabela preproducao
+    :param linha: Lista que será adicionada na tabela preproducao
     '''
-    func.add_linha('preproducao', tuple(linha))
+    crud.add_linha('preproducao', tuple(linha))
 
     if int(linha[3]) > 0:
-        atual = int(func.retornar_dado('lotes', 'qtd_atual', linha[1])) - int(linha[3])
-        func.updt_linha('lotes', 'qtd_atual', atual, linha[1])
+        atual = int(crud.retornar_dado('lotes', 'qtd_atual', linha[1])) - int(linha[3])
+        crud.updt_linha('lotes', 'qtd_atual', atual, linha[1])
 
     # Nova funcionalidade para atualizar categoria do lote de acordo com a ração informada no preproducao
-    if linha[7] != func.retornar_dado('lotes', 'racao', linha[1]):
-        func.updt_linha('lotes', 'racao', linha[7], linha[1])
+    if linha[7] != crud.retornar_dado('lotes', 'racao', linha[1]):
+        crud.updt_linha('lotes', 'racao', linha[7], linha[1])
 
 def taxa_diaria(prod, id_lote):
     '''
@@ -165,7 +166,7 @@ def taxa_diaria(prod, id_lote):
     :param id_lote: id do lote
     :return: Taxa de postura do dia em float
     '''
-    qtd = func.retornar_dado('lotes', 'qtd_atual', id_lote)
+    qtd = crud.retornar_dado('lotes', 'qtd_atual', id_lote)
 
     return prod*100/qtd
 
@@ -195,7 +196,7 @@ def main():
                 match escolha_prod:
                     case 1:
                         try:
-                            linhas = func.obter_linhas('producao')
+                            linhas = crud.obter_linhas('producao')
                             mostrar_linhas(linhas, ('ID', 'Lote', 'Data', 'Ovos.Int', 'Ovos.Def',
                                                              'Mortes', 'Ração', 'Água', 'Obs', 'Postura(%)'),
                                                 (5,4,10,8,8,6,5,5,28,10))
@@ -216,10 +217,10 @@ def main():
                             taxa = taxa_diaria(int(linha[3]), int(linha[1]))
                             linha.append(taxa)
                             atom_prod(linha)
-                            func.bank.commit()
+                            crud.bank.commit()
                             print(' Registro Adicionado!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 3:
                         ident = input_int('  ID do registro a editar: ')
@@ -228,22 +229,22 @@ def main():
                         try:
 
                             if coluna == 'mortalidade':
-                                lote = func.retornar_dado('producao', 'id_lote',ident)
-                                antigo = int(func.retornar_dado('lotes', 'qtd_atual',lote))
-                                original = antigo + int(func.retornar_dado('producao', 'mortalidade',ident))
+                                lote = crud.retornar_dado('producao', 'id_lote',ident)
+                                antigo = int(crud.retornar_dado('lotes', 'qtd_atual',lote))
+                                original = antigo + int(crud.retornar_dado('producao', 'mortalidade',ident))
                                 novo = original - int(dado)
-                                func.updt_linha('lotes', 'qtd_atual', novo, lote)
+                                crud.updt_linha('lotes', 'qtd_atual', novo, lote)
                             elif coluna == 'ovos_inteiros':
-                                qtd_original = (int(func.retornar_dado('producao','ovos_inteiros',ident))/
-                                                (float(func.retornar_dado('producao','taxa',ident))/100))
+                                qtd_original = (int(crud.retornar_dado('producao','ovos_inteiros',ident))/
+                                                (float(crud.retornar_dado('producao','taxa',ident))/100))
                                 taxa = (int(dado) * 100) / qtd_original
-                                func.updt_linha('producao', 'taxa', taxa, ident)
+                                crud.updt_linha('producao', 'taxa', taxa, ident)
 
-                            func.updt_linha('producao', coluna, dado, ident)
-                            func.bank.commit()
+                            crud.updt_linha('producao', coluna, dado, ident)
+                            crud.bank.commit()
                             print('  Registro Atualizado!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 4:
                         pass
@@ -257,7 +258,7 @@ def main():
                 match escolha_pre:
                     case 1:
                         try:
-                            linhas = func.obter_linhas('preproducao')
+                            linhas = crud.obter_linhas('preproducao')
                             mostrar_linhas(linhas , ('ID', 'Lote', 'Data', 'Mortes'
                                                                     , 'Ração', 'Água', 'Peso', 'Categoria', 'Observação'),
                                                 (5, 4, 10, 6, 6, 6, 5, 9, 41))
@@ -275,10 +276,10 @@ def main():
                                  input('  Observação: ')]
                         try:
                             atom_pre(linha)
-                            func.bank.commit()
+                            crud.bank.commit()
                             print(' Registro Adicionado!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 3:
                         ident = input_int('  ID do registro a editar: ')
@@ -287,17 +288,17 @@ def main():
                         try:
 
                             if coluna == 'mortalidade':
-                                lote = func.retornar_dado('preproducao', 'id_lote', ident)
-                                antigo = int(func.retornar_dado('lotes', 'qtd_atual', lote))
-                                original = antigo + int(func.retornar_dado('preproducao', 'mortalidade', ident))
+                                lote = crud.retornar_dado('preproducao', 'id_lote', ident)
+                                antigo = int(crud.retornar_dado('lotes', 'qtd_atual', lote))
+                                original = antigo + int(crud.retornar_dado('preproducao', 'mortalidade', ident))
                                 novo = original - int(dado)
-                                func.updt_linha('lotes', 'qtd_atual', novo, lote)
+                                crud.updt_linha('lotes', 'qtd_atual', novo, lote)
 
-                            func.updt_linha('preproducao', coluna, dado, ident)
-                            func.bank.commit()
+                            crud.updt_linha('preproducao', coluna, dado, ident)
+                            crud.bank.commit()
                             print('  Registro Atualizado!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 4:
                         pass
@@ -311,7 +312,7 @@ def main():
                 match escolha_mov:
                     case 1:
                         try:
-                            linhas = func.obter_linhas('financeiro')
+                            linhas = crud.obter_linhas('financeiro')
                             mostrar_linhas(linhas, ('ID', 'Data', 'Categoria', 'Quantidade',
                                                                'Valor', 'Fornecedor/Comprador', 'Obs'),
                                                 (5, 10, 9, 10, 8, 27, 29))
@@ -326,31 +327,31 @@ def main():
                                  input('  Fornecedor/Comprador: '),
                                  input('  Obs: ')]
                         try:
-                            func.add_linha('financeiro', tuple(linha))
-                            func.bank.commit()
+                            crud.add_linha('financeiro', tuple(linha))
+                            crud.bank.commit()
                             print('  Nova Movimentação Registrada!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 3:
                         ident = input_int('  ID da movimentação a Editar: ')
                         coluna = input('  Coluna do dado a editar: ')
                         dado = input('  Novo Dado: ')
                         try:
-                            func.updt_linha('financeiro', coluna, dado, ident)
-                            func.bank.commit()
+                            crud.updt_linha('financeiro', coluna, dado, ident)
+                            crud.bank.commit()
                             print('  Registro atualizado!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 4:
                         ident = input_int(f'  ID do Registro a deletar: ')
                         try:
-                            func.del_linha('financeiro', ident)
-                            func.bank.commit()
+                            crud.del_linha('financeiro', ident)
+                            crud.bank.commit()
                             print('  Registro deletado!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 5:
                         pass
@@ -364,37 +365,37 @@ def main():
                 match escolha_galp:
                     case 1:
                         try:
-                            linhas = func.obter_linhas('galpoes')
+                            linhas = crud.obter_linhas('galpoes')
                             mostrar_linhas(linhas, ('ID', 'Área do galpão'), (2,111))
                         except Exception as e:
                             print(f'  Erro: {e}')
                     case 2:
                         linha = [None, input_float(f'  Área(m²): ')]
                         try:
-                            func.add_linha('galpoes', tuple(linha))
-                            func.bank.commit()
+                            crud.add_linha('galpoes', tuple(linha))
+                            crud.bank.commit()
                             print('  Novo Galpão cadastrado!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 3:
                         ident = input_int('  ID do galpão a editar: ')
                         area = input_float('  Nova área do galpão: ')
                         try:
-                            func.updt_linha('galpoes', 'area', area, ident)
-                            func.bank.commit()
+                            crud.updt_linha('galpoes', 'area', area, ident)
+                            crud.bank.commit()
                             print('  Área do Galpão atualizada!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 4:
                         ident = input_int('  ID do galpão a deletar: ')
                         try:
-                            func.del_linha('galpoes', ident)
-                            func.bank.commit()
+                            crud.del_linha('galpoes', ident)
+                            crud.bank.commit()
                             print('  Galpão deletado!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 5:
                         pass
@@ -408,7 +409,7 @@ def main():
                 match escolha_lote:
                     case 1:
                         try:
-                            linhas = func.obter_linhas('lotes')
+                            linhas = crud.obter_linhas('lotes')
                             mostrar_linhas(linhas, ('ID','Galpão','Nascimento','Início Prod.',
                                                           'Descarte', 'Q.Inicial','Q.Atual','Fornecedor','Ração'),
                                                 (2,6,10,12,10,9,9,25,9))
@@ -425,31 +426,31 @@ def main():
                                  input('  Fornecedor: '),
                                  input('  Ração Utilizada: ')]
                         try:
-                            func.add_linha('lotes', tuple(linha))
-                            func.bank.commit()
+                            crud.add_linha('lotes', tuple(linha))
+                            crud.bank.commit()
                             print('  Novo Lote cadastrado!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 3:
                         ident = input_int('  ID do lote a Editar: ')
                         coluna = input('  Coluna do dado a editar: ')
                         dado = input('  Novo Dado: ')
                         try:
-                            func.updt_linha('lotes', coluna, dado, ident)
-                            func.bank.commit()
+                            crud.updt_linha('lotes', coluna, dado, ident)
+                            crud.bank.commit()
                             print('  Lote atualizado!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 4:
                         ident = input_int(f'  ID do Lote a deletar: ')
                         try:
-                            func.del_linha('lotes', ident)
-                            func.bank.commit()
+                            crud.del_linha('lotes', ident)
+                            crud.bank.commit()
                             print('  Lote deletado!')
                         except Exception as e:
-                            func.bank.rollback()
+                            crud.bank.rollback()
                             print(f'  Erro: {e}')
                     case 5:
                         pass
