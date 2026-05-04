@@ -6,6 +6,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow?style=for-the-badge)
 
 </div>
@@ -54,6 +55,7 @@ Cadastro de galpões com área e vínculo direto aos lotes alocados.
 ---
 
 ![Dashboard do sistema](assets/dashboard.png)
+
 ---
 
 ## Estrutura do banco de dados
@@ -93,7 +95,7 @@ As categorias de ração usam `ENUM` porque refletem fases zootécnicas bem defi
 ## Tecnologias
 
 - Python 3.10+
-- MySQL 8.0
+- MySQL 8.0 / MariaDB
 - mysql-connector-python (driver oficial)
 - python-dotenv (gerenciamento de variáveis de ambiente)
 
@@ -101,7 +103,7 @@ As categorias de ração usam `ENUM` porque refletem fases zootécnicas bem defi
 
 ## Como executar
 
-**Pré-requisitos:** Python 3.10+ e MySQL Server 8.0+
+**Pré-requisitos:** Python 3.10+ e MySQL Server 8.0+ ou MariaDB
 
 ```bash
 # Clone o repositório
@@ -138,8 +140,9 @@ python main.py
 ```
 poultry-analytics-system/
 │
-├── main.py              # Ponto de entrada e interface CLI
-├── func.py              # Acesso a dados e lógica de negócio
+├── main.py              # Ponto de entrada, interface CLI e lógica de negócio
+├── crud.py              # Camada de acesso a dados (CRUD e queries analíticas)
+├── analytics.py         # Camada de processamento e montagem de dados
 ├── schema.sql           # Definição do banco de dados
 ├── seed_granja.sql      # Dados de exemplo para desenvolvimento
 ├── requirements.txt     # Dependências Python
@@ -160,6 +163,8 @@ poultry-analytics-system/
 **ENUM para categorias de ração:** as fases de criação (Pré-Inicial, Inicial, Crescimento, Postura) são bem definidas pela zootecnia e não mudam. Modelar como ENUM em vez de uma tabela separada reflete essa realidade do domínio.
 
 **Variáveis de ambiente:** as credenciais de banco de dados são carregadas via `.env` com `python-dotenv`, mantendo dados sensíveis fora do repositório.
+
+**Arquitetura em camadas:** o projeto é dividido em três camadas com responsabilidades distintas. `crud.py` concentra todo o acesso ao banco de dados. `analytics.py` processa e monta os dados para exibição. `main.py` contém a interface, a lógica de negócio e orquestra as transações. Essa separação facilita manutenção e evolução do sistema — alterar uma query não impacta a interface, e vice-versa.
 
 ---
 
